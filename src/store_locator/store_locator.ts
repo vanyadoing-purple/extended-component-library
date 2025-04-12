@@ -13,26 +13,26 @@ import '../icon_button/icon_button.js';
 import '../place_building_blocks/place_directions_button/place_directions_button.js';
 
 // Placeholder for objectProperty (google3-only)
-import {html, nothing} from 'lit';
-import {customElement, property, query, state} from 'lit/decorators.js';
-import {classMap} from 'lit/directives/class-map.js';
-import {join} from 'lit/directives/join.js';
-import {ref} from 'lit/directives/ref.js';
-import {repeat} from 'lit/directives/repeat.js';
+import { html, nothing } from 'lit';
+import { customElement, property, query, state } from 'lit/decorators.js';
+import { classMap } from 'lit/directives/class-map.js';
+import { join } from 'lit/directives/join.js';
+import { ref } from 'lit/directives/ref.js';
+import { repeat } from 'lit/directives/repeat.js';
 
-import {APILoader} from '../api_loader/api_loader.js';
-import {BaseComponent} from '../base/base_component.js';
-import {LocalizationController} from '../base/localization_controller.js';
-import {WebFont, WebFontController} from '../base/web_font_controller.js';
-import type {OverlayLayout} from '../overlay_layout/overlay_layout.js';
-import type {PlacePicker} from '../place_picker/place_picker.js';
-import type {LatLng, MapElement, Place, PlaceResult} from '../utils/googlemaps_types.js';
+import { APILoader } from '../api_loader/api_loader.js';
+import { BaseComponent } from '../base/base_component.js';
+import { LocalizationController } from '../base/localization_controller.js';
+import { WebFont, WebFontController } from '../base/web_font_controller.js';
+import type { OverlayLayout } from '../overlay_layout/overlay_layout.js';
+import type { PlacePicker } from '../place_picker/place_picker.js';
+import type { LatLng, MapElement, Place, PlaceResult } from '../utils/googlemaps_types.js';
 
-import {DistanceInfo, DistanceMeasurer, DistanceSource} from './distances.js';
-import type {InternalListing, StoreLocatorListing} from './interfaces.js';
-import {FeatureSet, QuickBuilderConfiguration} from './interfaces.js';
-import {convertLocations, getFeatureSet, getMapOptions} from './quick_builder.js';
-import {storeLocatorStyles} from './store_locator_styles.js';
+import { DistanceInfo, DistanceMeasurer, DistanceSource } from './distances.js';
+import type { InternalListing, StoreLocatorListing } from './interfaces.js';
+import { FeatureSet, QuickBuilderConfiguration } from './interfaces.js';
+import { convertLocations, getFeatureSet, getMapOptions } from './quick_builder.js';
+import { storeLocatorStyles } from './store_locator_styles.js';
 
 declare global {
   interface HTMLElementTagNameMap {
@@ -133,7 +133,7 @@ export class StoreLocator extends BaseComponent {
    * * `'advanced'` brings in a Place details view to show photos, hours, and
    * reviews for each location.
    */
-  @property({attribute: 'feature-set', reflect: true})
+  @property({ attribute: 'feature-set', reflect: true })
   featureSet: FeatureSet = FeatureSet.ADVANCED;
 
   /**
@@ -141,18 +141,18 @@ export class StoreLocator extends BaseComponent {
    * documentation](https://developers.google.com/maps/documentation/get-map-id)
    * for more information.
    */
-  @property({attribute: 'map-id', reflect: true}) mapId?: string;
+  @property({ attribute: 'map-id', reflect: true }) mapId?: string;
 
   /**
    * List of locations to display in the store locator.
    */
-  @property({attribute: false}) listings?: StoreLocatorListing[];
+  @property({ attribute: false }) listings?: StoreLocatorListing[];
 
   /**
    * Overrides for the map options. Provide values for `center` and `zoom` to
    * display a map when `listings` is empty.
    */
-  @property({attribute: false})
+  @property({ attribute: false })
   mapOptions?: Partial<google.maps.MapOptions> = DEFAULT_MAP_OPTIONS;
 
   @state() private internalListings: InternalListing[] = [];
@@ -170,7 +170,7 @@ export class StoreLocator extends BaseComponent {
 
   protected readonly getMsg = LocalizationController.buildLocalizer(this);
   protected readonly fontLoader = new WebFontController(
-      this, [WebFont.GOOGLE_SANS_TEXT, WebFont.MATERIAL_SYMBOLS_OUTLINED]);
+    this, [WebFont.GOOGLE_SANS_TEXT, WebFont.MATERIAL_SYMBOLS_OUTLINED]);
 
   private mapsCoreLibrary?: google.maps.CoreLibrary;
   private userCountry?: string;
@@ -200,54 +200,38 @@ export class StoreLocator extends BaseComponent {
    */
   protected override willUpdate(changedProperties: Map<string, unknown>) {
     if (changedProperties.has('listings') ||
-        changedProperties.has(/* @state */ 'initialized')) {
+      changedProperties.has(/* @state */ 'initialized')) {
       this.internalListings =
-          (this.listings ?? []).map((x) => this.createInternalListing(x));
+        (this.listings ?? []).map((x) => this.createInternalListing(x));
       this.listingDistances.clear();
     }
   }
 
-protected override updated(changedProperties: Map<string, unknown>) {
-  // Perform map updates after the DOM has rendered, so the map element will exist.
-  if (changedProperties.has('listings') ||
+  protected override async updated(changedProperties: Map<string, unknown>) {
+    if (changedProperties.has('listings') ||
       changedProperties.has(/* @state */ 'initialized')) {
-    this.updateBounds();
-  }
+      this.updateBounds();
+    }
 
-  if ((changedProperties.has('mapOptions') ||
-       changedProperties.has(/* @state */ 'initialized')) && this.mapOptions) {
+    if ((changedProperties.has('mapOptions') ||
+      changedProperties.has(/* @state */ 'initialized')) && this.mapOptions) {
 
-    // If styles are provided, try to reinitialize the map instance to force
-    // the styles to be applied from the start
-    if (this.mapOptions.styles && this.mapElement) {
-      // Remove any existing map instance (this is a hack; adjust as needed)
-      // Clear the map container.
-      while (this.mapElement.firstChild) {
-        this.mapElement.removeChild(this.mapElement.firstChild);
+      // If styles are provided, try to reinitialize the map instance to force
+      // the styles to be applied from the start
+      if (this.mapOptions.styles && this.mapElement) {
+        // Clear the map container.
+        while (this.mapElement.firstChild) {
+          this.mapElement.removeChild(this.mapElement.firstChild);
+        }
+        // Create a new map instance with your complete mapOptions.
+        const newMap = new google.maps.Map(this.mapElement, this.mapOptions);
+        // Replace the internal reference.
+        (this.mapElement as any).innerMap = newMap;
+      } else {
+        this.mapElement?.innerMap?.setOptions(this.mapOptions);
       }
-      // Create a new map instance with your complete mapOptions.
-      const newMap = new google.maps.Map(this.mapElement, this.mapOptions);
-      // Replace the internal reference.
-      (this.mapElement as any).innerMap = newMap;
-    } else {
-      this.mapElement?.innerMap?.setOptions(this.mapOptions);
     }
   }
-} 
-
-protected override render() {
-  if (!this.initialized) return nothing;
-  return html`
-    <gmpx-split-layout>
-      <gmpx-overlay-layout slot="fixed">
-        ${this.renderSidePanelMain()}
-        ${this.renderSidePanelOverlay()}
-      </gmpx-overlay-layout>
-      ${this.renderMapPanel()}
-    </gmpx-split-layout>
-  `;
-}
-
 
   protected override render() {
     if (!this.initialized) return nothing;
@@ -261,6 +245,7 @@ protected override render() {
       </gmpx-split-layout>
     `;
   }
+
 
   /**
    * Configures the Store Locator component from data generated by the [Quick
@@ -282,7 +267,7 @@ protected override render() {
    */
   private async initialize() {
     this.mapsCoreLibrary =
-        await APILoader.importLibrary('core', this) as google.maps.CoreLibrary;
+      await APILoader.importLibrary('core', this) as google.maps.CoreLibrary;
     this.initialized = true;
   }
 
@@ -291,7 +276,7 @@ protected override render() {
       place_id: listing.placeId,
       name: listing.title,
       formatted_address: listing.addressLines?.join(' '),
-      geometry: {location: new this.mapsCoreLibrary!.LatLng(listing.position)}
+      geometry: { location: new this.mapsCoreLibrary!.LatLng(listing.position) }
     };
     return {
       ...listing,
@@ -302,20 +287,20 @@ protected override render() {
 
   private isIntermediateOrBetter() {
     return this.featureSet === FeatureSet.INTERMEDIATE ||
-        this.featureSet === FeatureSet.ADVANCED;
+      this.featureSet === FeatureSet.ADVANCED;
   }
 
-  private async updateDistances(origin: LatLng|null|undefined) {
+  private async updateDistances(origin: LatLng | null | undefined) {
     if (!this.isIntermediateOrBetter() || !origin ||
-        !this.internalListings.length) {
+      !this.internalListings.length) {
       this.listingDistances.clear();
     } else {
       const units = (this.userCountry === 'US') ?
-          this.mapsCoreLibrary!.UnitSystem.IMPERIAL :
-          this.mapsCoreLibrary!.UnitSystem.METRIC;
+        this.mapsCoreLibrary!.UnitSystem.IMPERIAL :
+        this.mapsCoreLibrary!.UnitSystem.METRIC;
       const distances = await this.distanceMeasurer.computeDistances(
-          origin, this.internalListings.map(listing => listing.position),
-          units);
+        origin, this.internalListings.map(listing => listing.position),
+        units);
       for (let i = 0; i < distances.length; i++) {
         this.listingDistances.set(this.internalListings[i], distances[i]);
       }
@@ -350,7 +335,7 @@ protected override render() {
    *
    * @returns true if the selected location was changed.
    */
-  private selectLocation(listing: InternalListing|undefined): boolean {
+  private selectLocation(listing: InternalListing | undefined): boolean {
     if (this.selectedListing === listing) return false;
     this.selectedListing = listing;
     return true;
@@ -392,7 +377,7 @@ protected override render() {
     // UI display for travel distance.
     const distanceInfo = this.listingDistances.get(listing);
     const showDistance = distanceInfo?.text &&
-        distanceInfo.source === DistanceSource.DISTANCE_MATRIX;
+      distanceInfo.source === DistanceSource.DISTANCE_MATRIX;
     const distanceHtml = showDistance ? distanceInfo.text : nothing;
 
     // Action buttons.
@@ -411,9 +396,8 @@ protected override render() {
     }
     for (const action of listing.actions ?? []) {
       actionButtons.push(
-          html`
-          <gmpx-icon-button icon="open_in_new" .href=${
-              action.defaultUri ?? nothing}>
+        html`
+          <gmpx-icon-button icon="open_in_new" .href=${action.defaultUri ?? nothing}>
             ${action.label}
           </gmpx-icon-button>`);
     }
@@ -436,7 +420,7 @@ protected override render() {
     // clang-format off
     return html`
       <li @click=${liClick}
-          class=${classMap({'selected': listing === this.selectedListing})}
+          class=${classMap({ 'selected': listing === this.selectedListing })}
           ${ref((el?: Element) => { listing.listingElement = el; })}>
         <gmpx-place-data-provider auto-fetch-disabled
             .place=${listing.placeResult}>
@@ -472,16 +456,16 @@ protected override render() {
       // Sort the listings with all Distance Matrix distances first, in order,
       // then all geodesic distances, in order.
       const distanceMatrixListings = this.internalListings.filter(
-          listing => this.listingDistances.get(listing)?.source ===
-              DistanceSource.DISTANCE_MATRIX);
+        listing => this.listingDistances.get(listing)?.source ===
+          DistanceSource.DISTANCE_MATRIX);
       const otherDistanceListings = this.internalListings.filter(
-          listing => this.listingDistances.get(listing)?.source !==
-              DistanceSource.DISTANCE_MATRIX);
+        listing => this.listingDistances.get(listing)?.source !==
+          DistanceSource.DISTANCE_MATRIX);
 
       const getDistance = (listing: InternalListing) =>
-          this.listingDistances.get(listing)?.value ?? Infinity;
+        this.listingDistances.get(listing)?.value ?? Infinity;
       const distanceSorter = (a: InternalListing, b: InternalListing) =>
-          getDistance(a) - getDistance(b);
+        getDistance(a) - getDistance(b);
       sortedListings = [
         ...distanceMatrixListings.sort(distanceSorter),
         ...otherDistanceListings.sort(distanceSorter)
@@ -490,8 +474,8 @@ protected override render() {
 
     // clang-format off
     const header = this.featureSet === FeatureSet.BASIC ?
-        nothing :
-        html`
+      nothing :
+      html`
         <div class="header">
           <div class="search-title">
             <span class="icon material-symbols-outlined">distance</span>
@@ -514,9 +498,9 @@ protected override render() {
             <div class="results">
               <ul id="location-results-list">
                 ${repeat(
-                    sortedListings,
-                    (x) => x.uniqueKey,
-                    (x) => this.renderListItem(x))}
+      sortedListings,
+      (x) => x.uniqueKey,
+      (x) => this.renderListItem(x))}
               </ul>
             </div>
           </div>
@@ -546,7 +530,7 @@ protected override render() {
       this.selectLocation(listing);
       const li = listing.listingElement;
       if (li) {
-        li.scrollIntoView({behavior: 'smooth', block: 'nearest'});
+        li.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       }
     };
     return html`
@@ -561,7 +545,7 @@ protected override render() {
     const originLatLng = this.searchLocation?.location;
     const destinationLatLng = this.selectedListing?.position;
     if (this.featureSet === FeatureSet.ADVANCED && originLatLng &&
-        destinationLatLng) {
+      destinationLatLng) {
       // clang-format off
       return html`
       <gmpx-route-overview no-pin
@@ -579,9 +563,9 @@ protected override render() {
         <gmp-map slot="main" id="main-map" .mapId=${this.mapId ?? nothing}>
           ${this.renderMapDirections()}
           ${repeat(
-              this.internalListings,
-              (x) => x.uniqueKey,
-              (x) => this.renderMapMarker(x))}
+      this.internalListings,
+      (x) => x.uniqueKey,
+      (x) => this.renderMapMarker(x))}
           ${this.renderSearchMarker()}
         </gmp-map>`;
     // clang-format on
