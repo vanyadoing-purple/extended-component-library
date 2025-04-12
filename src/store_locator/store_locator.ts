@@ -207,17 +207,15 @@ export class StoreLocator extends BaseComponent {
     }
   }
 
-  protected override updated(changedProperties: Map<string, unknown>) {
-    // Perform map updates after the DOM has rendered, so the map element
-    // will exist.
-    if (changedProperties.has('listings') ||
-        changedProperties.has(/* @state */ 'initialized')) {
-      this.updateBounds();
-    }
+protected override updated(changedProperties: Map<string, unknown>) {
+  // Perform map updates after the DOM has rendered, so the map element will exist.
+  if (changedProperties.has('listings') ||
+      changedProperties.has(/* @state */ 'initialized')) {
+    this.updateBounds();
+  }
 
   if ((changedProperties.has('mapOptions') ||
-       changedProperties.has(/* @state */ 'initialized')) &&
-      this.mapOptions) {
+       changedProperties.has(/* @state */ 'initialized')) && this.mapOptions) {
 
     // If styles are provided, try to reinitialize the map instance to force
     // the styles to be applied from the start
@@ -235,6 +233,21 @@ export class StoreLocator extends BaseComponent {
       this.mapElement?.innerMap?.setOptions(this.mapOptions);
     }
   }
+} 
+
+protected override render() {
+  if (!this.initialized) return nothing;
+  return html`
+    <gmpx-split-layout>
+      <gmpx-overlay-layout slot="fixed">
+        ${this.renderSidePanelMain()}
+        ${this.renderSidePanelOverlay()}
+      </gmpx-overlay-layout>
+      ${this.renderMapPanel()}
+    </gmpx-split-layout>
+  `;
+}
+
 
   protected override render() {
     if (!this.initialized) return nothing;
