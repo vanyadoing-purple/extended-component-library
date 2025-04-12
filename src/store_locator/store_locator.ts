@@ -215,9 +215,23 @@ export class StoreLocator extends BaseComponent {
       this.updateBounds();
     }
 
-    if ((changedProperties.has('mapOptions') ||
-         changedProperties.has(/* @state */ 'initialized')) &&
-        this.mapOptions) {
+  if ((changedProperties.has('mapOptions') ||
+       changedProperties.has(/* @state */ 'initialized')) &&
+      this.mapOptions) {
+
+    // If styles are provided, try to reinitialize the map instance to force
+    // the styles to be applied from the start
+    if (this.mapOptions.styles && this.mapElement) {
+      // Remove any existing map instance (this is a hack; adjust as needed)
+      // Clear the map container.
+      while (this.mapElement.firstChild) {
+        this.mapElement.removeChild(this.mapElement.firstChild);
+      }
+      // Create a new map instance with your complete mapOptions.
+      const newMap = new google.maps.Map(this.mapElement, this.mapOptions);
+      // Replace the internal reference.
+      (this.mapElement as any).innerMap = newMap;
+    } else {
       this.mapElement?.innerMap?.setOptions(this.mapOptions);
     }
   }
